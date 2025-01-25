@@ -1,0 +1,15 @@
+[DEFAULT]
+AccesspointIP = 
+InventreeURL = 
+InventreeToken = 
+[Style]
+TitleFont = fonts/Roboto-SemiBold.ttf
+TitleFontSize = 25
+TitlePosition = 0
+InventoryFont = fonts/Roboto-SemiBold.ttf
+InventoryFontSize = 15
+LocationFont = fonts/Roboto-SemiBold.ttf
+LocationFontSize = 14
+LocationPosition = 1
+[Debug]
+SkipUpload = False
