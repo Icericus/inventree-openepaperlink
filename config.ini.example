@@ -1,15 +1,20 @@
 [DEFAULT]
-AccesspointIP = 
-InventreeURL = 
-InventreeToken = 
-[Style]
-TitleFont = fonts/Roboto-SemiBold.ttf
-TitleFontSize = 25
-TitlePosition = 0
-InventoryFont = fonts/Roboto-SemiBold.ttf
-InventoryFontSize = 15
-LocationFont = fonts/Roboto-SemiBold.ttf
-LocationFontSize = 14
-LocationPosition = 1
-[Debug]
-SkipUpload = False
+# IP of the OpenEPaperLink access point
+ACCESSPOINTIP = 
+
+# URL and Token for the InvenTree instance
+INVENTREEURL = 
+INVENTREETOKEN = 
+
+# Style
+TITLEFONT = fonts/Roboto-SemiBold.ttf
+TITLEFONTSIZE = 25
+TITLEPOSITION = 0
+INVENTORYFONT = fonts/Roboto-SemiBold.ttf
+INVENTORYFONTSIZE = 15
+LOCATIONFONT = fonts/Roboto-SemiBold.ttf
+LOCATIONFONTSIZE = 14
+LOCATIONPOSITION = 1
+
+# Debug
+SKIPUPLOAD = False

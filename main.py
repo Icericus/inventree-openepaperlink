@@ -1,3 +1,5 @@
+import os
+import sys
 import requests
 import json
 import hashlib
@@ -11,13 +13,23 @@ tagdict = {} # machash: (mac, hwtype)
 hwtypedict = {} # hwtype: (width, height)
 stocklocation = {} # pk: (barcode_hash, name, description)
 
+
 config = configparser.ConfigParser()
 config.read("config.ini")
-api = InvenTreeAPI(config["DEFAULT"]["InventreeURL"], token=config["DEFAULT"]["InvenTreeToken"])
+
+def getConfig(key, section='DEFAULT'):
+    # Check if the environment variable is set
+    env_value = os.getenv(key)
+    if env_value is not None:
+        return env_value
+    # If not set, return the value from the config file
+    return config.get(section, key)
+
+api = InvenTreeAPI(getConfig("INVENTREEURL"), token=getConfig("INVENTREETOKEN"))
 
 def getTagdata():
     # Get the tagdb.json from the AP and extract the macs and hwTypes, then calculate the machash
-    tagdb = requests.get("http://" + config["DEFAULT"]["AccesspointIP"] + "/current/tagDB.json")
+    tagdb = requests.get("http://" + getConfig("ACCESSPOINTIP") + "/current/tagDB.json")
     hwtypeset = set()
     for tag in tagdb.json():
         match tag:
@@ -30,7 +42,7 @@ def getTagdata():
     # with the set of hwtypes we get the hardware json files from the AP for the resolution data
     for hwtype in hwtypeset:
         hwfilename = str("%0.2X" % hwtype) + ".json"
-        typejson = requests.get("http://" + config["DEFAULT"]["AccesspointIP"] + "/tagtypes/" + hwfilename)
+        typejson = requests.get("http://" + getConfig("ACCESSPOINTIP") + "/tagtypes/" + hwfilename)
         match typejson.json():
             case {"width": int() as width, "height": int() as height}:
                 hwtypedict[hwtype] = (width, height)
@@ -82,6 +94,7 @@ def displayUpload():
         tagtitle = stocklocation[locpk][2]
         imagepath = "./current/" + mac + ".jpg"
         payload = {"dither": 0, "mac": mac}
+        url = "http://" + getConfig("ACCESSPOINTIP") + "/imgupload"
         maxlines = (tagheight - (30 + 16)) // 16
         print("Generating image for tag " + mac + " at position " + taglocation)
         image = Image.new('P', (tagwidth, tagheight))
@@ -93,20 +106,21 @@ def displayUpload():
         image.putpalette(palette)
         draw = ImageDraw.Draw(image)
         # Define the fonts and sizes, shall be changed based on text length later
-        font_title = ImageFont.truetype(config["Style"]["TitleFont"], size=int(config["Style"]["TitleFontSize"]))  # Change the font file and size as per your preference
-        font_location = ImageFont.truetype(config["Style"]["LocationFont"], size=int(config["Style"]["LocationFontSize"]))  # Change the font file and size as per your preference
-        font_inventory = ImageFont.truetype(config["Style"]["InventoryFont"], size=int(config["Style"]["InventoryFontSize"]))
+        font_title = ImageFont.truetype(getConfig("TITLEFONT"), size=int(getConfig("TITLEFONTSIZE")))  
+        font_location = ImageFont.truetype(getConfig("LOCATIONFONT"), size=int(getConfig("LOCATIONFONTSIZE")))  
+        font_inventory = ImageFont.truetype(getConfig("INVENTORYFONT"), size=int(getConfig("INVENTORYFONTSIZE")))
 
         text_bbox_title = draw.textbbox((0, 0), tagtitle, font=font_title)
         text_bbox_location = draw.textbbox((0, 0), taglocation, font=font_location)
-        text_position_title = ((image.width - (text_bbox_title[2] - text_bbox_title[0])) // 2, int(config["Style"]["TitlePosition"]))
-        text_position_location = ((image.width - (text_bbox_location[2] - text_bbox_location[0])) // 2, image.height - 18 + int(config["Style"]["LocationPosition"]))
+        text_position_title = ((image.width - (text_bbox_title[2] - text_bbox_title[0])) // 2, int(getConfig("TITLEPOSITION")))
+        text_position_location = ((image.width - (text_bbox_location[2] - text_bbox_location[0])) // 2, image.height - 18 + int(getConfig("LOCATIONPOSITION")))
         # Base draw functions
         draw.rectangle([(0, 0), (image.width - 1, 30)], fill=2, outline=1, width=1)
         draw.rectangle([(0, image.height - 16), (image.width - 1, image.height - 1)], fill=2, width=1)
-        draw.text(text_position_title, tagtitle, fill=0, font=font_title)  # Use palette index 1 for black color
-        draw.text(text_position_location, taglocation, fill=0, font=font_location)  # Use palette index 2 for red color
+        draw.text(text_position_title, tagtitle, fill=0, font=font_title)  
+        draw.text(text_position_location, taglocation, fill=0, font=font_location)  
         draw.line(((28, 30),(28, image.height - 16)), fill=1, width=1)
+        # Inventory draw function with height and length cutoff
         heightpos = 32
         stock = getStock(locpk)
         stocklength = len(stock)
@@ -124,8 +138,7 @@ def displayUpload():
         rgb_image = rotated_image.convert('RGB')
         print("Exporting image to " + imagepath)
         rgb_image.save(imagepath, 'JPEG', quality="maximum")
-        url = "http://" + config["DEFAULT"]["AccesspointIP"] + "/imgupload"
-        if config["Debug"]["SkipUpload"] == "False" or config["Debug"]["SkipUpload"] == "false":
+        if getConfig("SKIPUPLOAD") == "False" or getConfig("SKIPUPLOAD") == "false":
             print("Uploading to " + url)
             files = {"file": open(imagepath, "rb")}
             response = requests.post(url, data=payload, files=files)

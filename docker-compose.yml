@@ -1,10 +1,14 @@
-version: '3.4'
-
 services:
-  inventreeopenepaperlink:
-    image: inventreeopenepaperlink
-    build:
-      context: .
-      dockerfile: ./Dockerfile
+  inventree-openepaperlink:
+    image: ghcr.io/icericus/inventree-openepaperlink:main
+    container_name: ivt-oel
     volumes:
-     - ./:/app
+      - ./fonts:/app/fonts
+    env_file:
+      - .env
+
+  restarter:
+    image: docker:cli
+    volumes: ["/var/run/docker.sock:/var/run/docker.sock"]
+    command: ["/bin/sh", "-c", "while true; do sleep 1800; docker start ivt-oel; done"]
+    restart: unless-stopped
